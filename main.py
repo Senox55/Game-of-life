@@ -12,13 +12,14 @@ black_color = (0, 0, 0)
 
 class GameBoard:
     def __init__(self, width: int, height: int):
-        self.__size = 20
-        self.field = [[randint(0, 1) for i in range(self.__size)] for j in range(self.__size)]
+        self.__size = 40
+        self.button_size = 100
+        self.field = [[0 for column in range(self.__size)] for row in range(self.__size)]
         self.width = width
         self.height = height
         self.cell_width = self.width // self.__size
         self.cell_height = self.height // self.__size
-        self.screen_size = [self.width, self.height]
+        self.screen_size = [self.width, self.height + self.button_size]
         self.screen = pygame.display.set_mode(self.screen_size)
         self.line_thickness = 3
 
@@ -36,10 +37,27 @@ class GameBoard:
             pygame.draw.line(self.screen, black_color, start_pos, end_pos, self.line_thickness)
         pygame.display.flip()
 
+    def create_glider(self):
+        for raw in range(self.__size):
+            for column in range(self.__size):
+                draw_condition = ((raw == 0 and column == 0) or
+                                  (raw == 1 and (column == 1 or column == 2)) or
+                                  (raw == 2 and (column == 0 or column == 1)))
+
+                if draw_condition:
+                    self.field[raw][column] = 1
+
+    def create_blinker(self):
+        for raw in range(self.__size):
+            for column in range(self.__size):
+                draw_condition = ((raw == 20 and column in [19, 20, 21]))
+
+                if draw_condition:
+                    self.field[raw][column] = 1
+
     def get_coord_cell(self, row: int, column: int):
         x = column * self.cell_width + (self.cell_width // 2)
         y = row * self.cell_height + (self.cell_height // 2)
-        print(x, y)
         x1 = x - self.cell_width // 2 + self.line_thickness - 1
         y1 = y - self.cell_height // 2 + self.line_thickness - 1
         x2 = self.cell_width - self.line_thickness
@@ -50,17 +68,21 @@ class GameBoard:
         for row in range(len(self.field)):
             for column in range(len(self.field[row])):
                 cell = self.field[row][column]
-                print(cell)
                 if cell == 1:
                     coord_cell = game_board.get_coord_cell(row, column)
-                    print(coord_cell)
                     pygame.draw.rect(self.screen, red_color,
                                      coord_cell)
                 if cell == 0:
                     coord_cell = game_board.get_coord_cell(row, column)
-                    print(coord_cell)
                     pygame.draw.rect(self.screen, white_color,
                                      coord_cell)
+        pygame.display.flip()
+
+    def draw_buttons(self):
+        pygame.draw.rect(self.screen, red_color,
+                         (0, self.height, self.button_size, self.button_size))
+        pygame.draw.rect(self.screen, red_color,
+                         (self.width - self.button_size, self.height, self.button_size, self.button_size))
         pygame.display.flip()
 
     def count_alive_neighbors(self, row: int, column: int):
@@ -93,13 +115,22 @@ class Game:
     def start_game(self):
         running = True
         game_board.draw_cells()
+        game_board.draw_buttons()
+        game_board.draw_cells()
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    x, y = event.pos
+                    if y in range(600, 700):
+                        if x in range(0, game_board.button_size):
+                            game_board.create_glider()
+                        if x in range(game_board.width - game_board.button_size, game_board.width):
+                            game_board.create_blinker()
             game_board.apply_rules_and_update_cells()
             game_board.draw_cells()
-            time.sleep(0.1)
+            time.sleep(0.01)
 
 
 game_board = GameBoard(600, 600)
